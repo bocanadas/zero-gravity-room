@@ -1,0 +1,80 @@
+/* Remove browser defaults so the 3D canvas can truly fill the screen. */
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Three.js adds a <canvas>; force it to cover the viewport. */
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Simple modern HUD that stays above the 3D canvas. */
+.hud {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  min-width: 240px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(10px);
+  color: #e5e7eb;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.hud-title {
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.hud-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+}
+
+.hud-hint {
+  margin-top: 8px;
+  color: #9ca3af;
+  font-size: 0.78rem;
+}
+
+.status-light {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+  animation: statusPulse 2.8s ease-in-out infinite;
+}
+
+.status-light-on {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e, 0 0 16px rgba(34, 197, 94, 0.55);
+}
+
+.status-light-off {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444, 0 0 16px rgba(239, 68, 68, 0.55);
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+}
