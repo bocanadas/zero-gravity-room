@@ -4,10 +4,6 @@
 - Claude (ideation and planning)
 - Cursor with Claude/GPT (code generation and debugging)
 
-## Development Process
-
-### Day 1 - 2/25/2026
-
 **Planning phase:**
 
 Brainstormed project ideas for a creative web app. I wanted something visually impressive, interactive, and unique.
@@ -58,9 +54,8 @@ Add comments explaining what each part does. Keep it simple. no physics yet, jus
 
 5. "can we add a HUD please and make it clean and modern and add a little green light that has a soft glow showing gravity is on and when its off turn it red and do the same type of glow "
 
-6. ""
+6. "what part of the code makes the wall invisble so we can see inside of it? and should we keep this as a feature where you can zoom out and see the box of the room or no? im not sure if we should do this im envioning making an office desk with an old monitor and a chair and a mug and making it like an office rage room. i would like to use 3D models from Sketchfab (.glb files). Show me how to load one using GLTFLoader and give it a physics body. is this a good move? what do you think?"
 
-Commit.
-Prompt 5:
+7. "can you point me to the lines that handle the room being visible from outside and look in the room from the direction im viewing the room from."
 
-I'm going to load 3D models from Sketchfab (.glb files). Show me how to load one using GLTFLoader and give it a physics body.
+8. "i added the .glb file to the models folder. Show me how to load one using GLTFLoader and give it a physics body. show me the basics i've never done this"
