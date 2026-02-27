@@ -9,6 +9,10 @@ import mugModelUrl from "./models/mug.glb?url";
 import keyboardModelUrl from "./models/keyboard.glb?url";
 import pcModelUrl from "./models/old_pc_tower.glb?url";
 import mouseModelUrl from "./models/mouse.glb?url";
+import carpetTextureUrl from "./textures/dusty_carpet.jpg?url";
+import wallpaperTextureUrl from "./textures/wallpaper.png?url";
+import ceilingAUrl from "./textures/ceiling.jpg?url";
+import ceilingBUrl from "./textures/realceiling.jpg?url";
 
 // Create a scene as the container for everything we render.
 const scene = new THREE.Scene();
@@ -45,41 +49,16 @@ physicsWorld.defaultContactMaterial.restitution = 0.05;
 const roomSize = 12;
 const roomHeight = 8;
 const roomHalfSize = roomSize / 2;
+const textureLoader = new THREE.TextureLoader();
+const floorTexture = textureLoader.load(carpetTextureUrl);
+floorTexture.wrapS = THREE.RepeatWrapping;
+floorTexture.wrapT = THREE.RepeatWrapping;
+floorTexture.repeat.set(4, 4);
 
-function createWoodFloorTexture() {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-    const context = canvas.getContext("2d");
-    if (!context) return null;
-
-    context.fillStyle = "#7a5a3a";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Simple plank pattern with subtle random variation.
-    const plankHeight = 28;
-    for (let y = 0; y < canvas.height; y += plankHeight) {
-        const colorNoise = 90 + Math.floor(Math.random() * 35);
-        context.fillStyle = `rgb(${colorNoise + 30}, ${colorNoise}, ${colorNoise - 20})`;
-        context.fillRect(0, y, canvas.width, plankHeight - 2);
-    }
-
-    // Thin darker lines for plank seams.
-    context.strokeStyle = "rgba(40, 22, 12, 0.35)";
-    context.lineWidth = 2;
-    for (let y = 0; y < canvas.height; y += plankHeight) {
-        context.beginPath();
-        context.moveTo(0, y);
-        context.lineTo(canvas.width, y);
-        context.stroke();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4, 4);
-    return texture;
-}
+const wallTexture = textureLoader.load(wallpaperTextureUrl);
+wallTexture.wrapS = THREE.RepeatWrapping;
+wallTexture.wrapT = THREE.RepeatWrapping;
+wallTexture.repeat.set(6, 2.5);
 
 // Warm office/backrooms-style lighting.
 scene.add(new THREE.AmbientLight(0xfff0b3, 0.75));
@@ -92,7 +71,7 @@ const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(roomSize, roomSize),
     new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        map: createWoodFloorTexture(),
+        map: floorTexture,
         roughness: 0.9,
         metalness: 0.05,
     })
@@ -102,9 +81,43 @@ floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.01;
 scene.add(floor);
 // Simple blank white room shell (rendered from inside faces).
+const wallMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    map: wallTexture,
+    roughness: 0.95,
+    metalness: 0.02,
+    side: THREE.BackSide,
+});
+const activeCeiling = "A"; // change to "B" to test the other one
+const ceilingTexture = textureLoader.load(activeCeiling === "A" ? ceilingAUrl : ceilingBUrl);
+ceilingTexture.wrapS = THREE.RepeatWrapping;
+ceilingTexture.wrapT = THREE.RepeatWrapping;
+ceilingTexture.repeat.set(3, 3);
+
+const ceilingMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    map: ceilingTexture,
+    roughness: 0.9,
+    metalness: 0.02,
+    side: THREE.BackSide,
+  });
+
+const hiddenBottomMaterial = new THREE.MeshStandardMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0,
+    side: THREE.BackSide,
+});
 const room = new THREE.Mesh(
     new THREE.BoxGeometry(roomSize, roomHeight, roomSize),
-    new THREE.MeshStandardMaterial({ color: 0xf8fafc, side: THREE.BackSide })
+    [
+        wallMaterial, // +X
+        wallMaterial, // -X
+        ceilingMaterial, // +Y
+        hiddenBottomMaterial, // -Y
+        wallMaterial, // +Z
+        wallMaterial, // -Z
+    ]
 );
 room.position.y = roomHeight / 2;
 scene.add(room);
