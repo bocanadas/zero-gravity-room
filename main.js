@@ -2,7 +2,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as CANNON from "cannon-es";
-import officeDeskModelUrl from "./models/office_table_desk.glb?url";
+import deskModelUrl from "./models/office_table_desk.glb?url";
+import chairModelUrl from "./models/office_chair.glb?url";
+import monitorModelUrl from "./models/monitor.glb?url";
+import mugModelUrl from "./models/mug.glb?url";
+import keyboardModelUrl from "./models/keyboard.glb?url";
+import pcModelUrl from "./models/old_pc_tower.glb?url";
+import mouseModelUrl from "./models/mouse.glb?url";
 
 // Create a scene as the container for everything we render.
 const scene = new THREE.Scene();
@@ -33,19 +39,67 @@ controls.maxPolarAngle = Math.PI / 2;
 const physicsWorld = new CANNON.World({
     gravity: new CANNON.Vec3(0, -9.82, 0),
 });
+physicsWorld.allowSleep = true;
+physicsWorld.defaultContactMaterial.friction = 0.6;
+physicsWorld.defaultContactMaterial.restitution = 0.05;
 const roomSize = 12;
 const roomHeight = 8;
 const roomHalfSize = roomSize / 2;
 
-// Balanced light setup: ambient softens shadows, directional gives shape.
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-const sun = new THREE.DirectionalLight(0xffffff, 1);
+function createWoodFloorTexture() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    context.fillStyle = "#7a5a3a";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Simple plank pattern with subtle random variation.
+    const plankHeight = 28;
+    for (let y = 0; y < canvas.height; y += plankHeight) {
+        const colorNoise = 90 + Math.floor(Math.random() * 35);
+        context.fillStyle = `rgb(${colorNoise + 30}, ${colorNoise}, ${colorNoise - 20})`;
+        context.fillRect(0, y, canvas.width, plankHeight - 2);
+    }
+
+    // Thin darker lines for plank seams.
+    context.strokeStyle = "rgba(40, 22, 12, 0.35)";
+    context.lineWidth = 2;
+    for (let y = 0; y < canvas.height; y += plankHeight) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(canvas.width, y);
+        context.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 4);
+    return texture;
+}
+
+// Warm office/backrooms-style lighting.
+scene.add(new THREE.AmbientLight(0xfff0b3, 0.75));
+const sun = new THREE.DirectionalLight(0xffe6a8, 0.8);
 sun.position.set(5, 8, 3);
 scene.add(sun);
 
 // Floor plane rotated flat so the cube appears to rest on it.
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomSize, roomSize),
+    new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: createWoodFloorTexture(),
+        roughness: 0.9,
+        metalness: 0.05,
+    })
+);
 floor.rotation.x = -Math.PI / 2;
+// Slight offset avoids z-fighting with the room shell bottom face.
+floor.position.y = -0.01;
 scene.add(floor);
 // Simple blank white room shell (rendered from inside faces).
 const room = new THREE.Mesh(
@@ -88,22 +142,10 @@ ceilingBody.position.set(0, roomHeight, 0);
 ceilingBody.quaternion.setFromEuler(Math.PI / 2, 0, 0);
 physicsWorld.addBody(ceilingBody);
 
-// One starter cube for the room.
-const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x60a5fa }));
-cube.position.y = 4;
-scene.add(cube);
-
-// Matching dynamic physics body; same size as Three box (half-extents = 0.5).
-const cubePhysicsBody = new CANNON.Body({
-    mass: 1,
-    shape: new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5)),
-    position: new CANNON.Vec3(0, 4, 0),
-});
-physicsWorld.addBody(cubePhysicsBody);
-const movablePhysicsBodies = [cubePhysicsBody];
+const movablePhysicsBodies = [];
 const gltfLoader = new GLTFLoader();
 const modelPhysicsPairs = [];
-const draggableTargets = [cube];
+const draggableTargets = [];
 let activeDragItem = null;
 const dragWallPadding = 0.05;
 let hoveredDraggableRoot = null;
@@ -111,13 +153,59 @@ let activeDraggedRoot = null;
 let outlinedRoot = null;
 let outlineHelper = null;
 
-// Add more office items here. Each object in this array becomes one loaded model.
+// Keep office setup near the center of the room.
+const officeAnchor = new THREE.Vector3(0, 0, 0);
+
+// Add more office items here. positionOffset is relative to officeAnchor.
 const officeItems = [
     {
-        modelUrl: officeDeskModelUrl,
-        position: new THREE.Vector3(0, 0, -2.5),
-        scale: 1,
-        mass: 1, // 0 = static furniture, >0 = movable physics object.
+        modelUrl: deskModelUrl,
+        positionOffset: new THREE.Vector3(0, 0, 0),
+        scale: 2.05,
+        rotationY: 0,
+        mass: 8,
+    },
+    {
+        modelUrl: chairModelUrl,
+        positionOffset: new THREE.Vector3(0, 0, 2.15),
+        scale: 2.35,
+        rotationY: Math.PI,
+        mass: 5,
+    },
+    {
+        modelUrl: monitorModelUrl,
+        positionOffset: new THREE.Vector3(0.0, 2.75, 0.72),
+        scale: 0.02,
+        rotationY: Math.PI,
+        mass: 1.8,
+    },
+    {
+        modelUrl: mugModelUrl,
+        positionOffset: new THREE.Vector3(1.2, 2.6, 1.05),
+        scale: 1.05,
+        rotationY: 0,
+        mass: 1,
+    },
+    {
+        modelUrl: keyboardModelUrl,
+        positionOffset: new THREE.Vector3(0.0, 2.55, 1.45),
+        scale: 0.58,
+        rotationY: Math.PI,
+        mass: 1.1,
+    },
+    {
+        modelUrl: pcModelUrl,
+        positionOffset: new THREE.Vector3(-1.2, 0.25, 0.2),
+        scale: 0.95,
+        rotationY: Math.PI / 2,
+        mass: 3.8,
+    },
+    {
+        modelUrl: mouseModelUrl,
+        positionOffset: new THREE.Vector3(0.95, 2.58, 1.4),
+        scale: 0.1,
+        rotationY: Math.PI,
+        mass: 0.7,
     },
 ];
 
@@ -125,8 +213,9 @@ const officeItems = [
 function loadModelWithBoxPhysics(itemConfig) {
     const {
         modelUrl,
-        position = new THREE.Vector3(),
+        positionOffset = new THREE.Vector3(),
         scale = 1,
+        rotationY = 0,
         mass = 0,
     } = itemConfig;
 
@@ -134,8 +223,9 @@ function loadModelWithBoxPhysics(itemConfig) {
         modelUrl,
         (gltf) => {
             const model = gltf.scene;
-            model.position.copy(position);
+            model.position.copy(officeAnchor).add(positionOffset);
             model.scale.setScalar(scale);
+            model.rotation.y = rotationY;
             scene.add(model);
 
             // Build a box around the model to use as a simple physics collider.
@@ -161,27 +251,38 @@ function loadModelWithBoxPhysics(itemConfig) {
                 shape: new CANNON.Box(halfExtents),
                 position: new CANNON.Vec3(center.x, center.y, center.z),
             });
+            if (mass > 0) {
+                // Damping keeps heavy props from jittering/launching on first contacts.
+                modelPhysicsBody.linearDamping = 0.35;
+                modelPhysicsBody.angularDamping = 0.6;
+                modelPhysicsBody.allowSleep = true;
+                modelPhysicsBody.sleepSpeedLimit = 0.15;
+                modelPhysicsBody.sleepTimeLimit = 0.6;
+            }
             physicsWorld.addBody(modelPhysicsBody);
 
-            // Dynamic model bodies need render sync each frame.
-            if (mass > 0) {
-                const modelAnchor = new THREE.Group();
-                modelAnchor.position.copy(center);
-                model.position.sub(center);
-                modelAnchor.add(model);
-                scene.add(modelAnchor);
-                scene.remove(model);
+            // Anchor every model for consistent outline + dragging behavior.
+            const modelAnchor = new THREE.Group();
+            modelAnchor.position.copy(center);
+            model.position.sub(center);
+            modelAnchor.add(model);
+            scene.add(modelAnchor);
+            scene.remove(model);
 
-                modelAnchor.userData.dragItem = {
-                    body: modelPhysicsBody,
-                    dragBounds: createDragBounds(
-                        Math.max(size.x * 0.5, 0.05),
-                        Math.max(size.y * 0.5, 0.05),
-                        Math.max(size.z * 0.5, 0.05)
-                    ),
-                };
-                draggableTargets.push(modelAnchor);
-                modelPhysicsPairs.push({ model: modelAnchor, body: modelPhysicsBody });
+            modelAnchor.userData.dragItem = {
+                body: modelPhysicsBody,
+                releaseType: mass > 0 ? CANNON.Body.DYNAMIC : CANNON.Body.STATIC,
+                canThrow: mass > 0,
+                dragBounds: createDragBounds(
+                    Math.max(size.x * 0.5, 0.05),
+                    Math.max(size.y * 0.5, 0.05),
+                    Math.max(size.z * 0.5, 0.05)
+                ),
+            };
+            draggableTargets.push(modelAnchor);
+            modelPhysicsPairs.push({ model: modelAnchor, body: modelPhysicsBody });
+
+            if (mass > 0) {
                 movablePhysicsBodies.push(modelPhysicsBody);
             }
         },
@@ -199,7 +300,7 @@ const pointerScreen = new THREE.Vector2();
 const dragPlane = new THREE.Plane();
 const dragHitPoint = new THREE.Vector3();
 const cameraForward = new THREE.Vector3();
-let isDraggingCube = false;
+let isDraggingItem = false;
 
 // Keep a short movement history so mouse release can create a throw velocity.
 const recentDragPoints = [];
@@ -246,11 +347,6 @@ function calculateThrowVelocity() {
     return new CANNON.Vec3(velocity.x, velocity.y, velocity.z);
 }
 
-cube.userData.dragItem = {
-    body: cubePhysicsBody,
-    dragBounds: createDragBounds(0.5, 0.5, 0.5),
-};
-
 function getDragItemFromHitObject(object) {
     let current = object;
     while (current) {
@@ -296,13 +392,13 @@ function refreshOutlineTarget() {
 
 function clearHoverState() {
     hoveredDraggableRoot = null;
-    if (!isDraggingCube) {
+    if (!isDraggingItem) {
         refreshOutlineTarget();
     }
 }
 
 function updateHoveredObject() {
-    if (isDraggingCube) return;
+    if (isDraggingItem) return;
     raycaster.setFromCamera(pointerScreen, camera);
     const hit = raycaster.intersectObjects(draggableTargets, true)[0];
     const newHoveredRoot = hit ? findDraggableRoot(hit.object) : null;
@@ -312,7 +408,7 @@ function updateHoveredObject() {
 }
 
 window.addEventListener("pointermove", (event) => {
-    if (isDraggingCube) return;
+    if (isDraggingItem) return;
     const hoveredElement = document.elementFromPoint(event.clientX, event.clientY);
     if (hoveredElement !== renderer.domElement) {
         clearHoverState();
@@ -334,12 +430,13 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     const hitDragItem = getDragItemFromHitObject(hit.object);
     if (!hitDragItem) return;
 
-    isDraggingCube = true;
+    isDraggingItem = true;
     activeDraggedRoot = findDraggableRoot(hit.object);
     activeDragItem = hitDragItem;
     refreshOutlineTarget();
     controls.enabled = false;
     activeDragItem.body.type = CANNON.Body.KINEMATIC;
+    activeDragItem.body.updateMassProperties();
     activeDragItem.body.velocity.set(0, 0, 0);
     activeDragItem.body.angularVelocity.set(0, 0, 0);
     activeDragItem.body.wakeUp();
@@ -356,13 +453,19 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 });
 
 window.addEventListener("pointerup", () => {
-    if (!isDraggingCube) return;
-    isDraggingCube = false;
+    if (!isDraggingItem) return;
+    isDraggingItem = false;
     controls.enabled = true;
-    activeDragItem.body.type = CANNON.Body.DYNAMIC;
+    activeDragItem.body.type = activeDragItem.releaseType;
+    activeDragItem.body.updateMassProperties();
     activeDragItem.body.wakeUp();
-    const throwVelocity = calculateThrowVelocity();
-    activeDragItem.body.velocity.set(throwVelocity.x * 0.6, throwVelocity.y * 0.6, throwVelocity.z * 0.6);
+    if (activeDragItem.canThrow) {
+        const throwVelocity = calculateThrowVelocity();
+        activeDragItem.body.velocity.set(throwVelocity.x * 0.6, throwVelocity.y * 0.6, throwVelocity.z * 0.6);
+    } else {
+        activeDragItem.body.velocity.set(0, 0, 0);
+        activeDragItem.body.angularVelocity.set(0, 0, 0);
+    }
     activeDragItem = null;
     activeDraggedRoot = null;
     updateHoveredObject();
@@ -407,7 +510,7 @@ window.addEventListener("resize", () => {
 
 renderer.setAnimationLoop(() => {
     // While dragging, move the kinematic body to the mouse ray intersection.
-    if (isDraggingCube && activeDragItem) {
+    if (isDraggingItem && activeDragItem) {
         raycaster.setFromCamera(pointerScreen, camera);
         if (raycaster.ray.intersectPlane(dragPlane, dragHitPoint)) {
             const { dragBounds } = activeDragItem;
@@ -426,8 +529,6 @@ renderer.setAnimationLoop(() => {
     const frameSeconds = (now - lastFrameTimestamp) / 1000;
     lastFrameTimestamp = now;
     physicsWorld.step(1 / 60, frameSeconds, 3);
-    cube.position.copy(cubePhysicsBody.position);
-    cube.quaternion.copy(cubePhysicsBody.quaternion);
     for (const pair of modelPhysicsPairs) {
         pair.model.position.copy(pair.body.position);
         pair.model.quaternion.copy(pair.body.quaternion);
