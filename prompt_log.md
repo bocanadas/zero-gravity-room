@@ -60,21 +60,6 @@ Add comments explaining what each part does. Keep it simple. no physics yet, jus
 
 6. ""
 
-
-Prompt 2:
-
-Now add cannon-es physics so the cube falls and lands on the floor. Walk me through how the physics world syncs with the Three.js scene.
-
-Commit again.
-Prompt 3:
-
-Add a spacebar listener that toggles gravity between normal (-9.8) and zero. When gravity turns off, give objects a small random push so they drift.
-
-Commit.
-Prompt 4:
-
-Add mouse click raycasting so I can click on the cube, drag it around, and throw it. Explain how raycasting works.
-
 Commit.
 Prompt 5:
 
