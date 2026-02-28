@@ -2,7 +2,9 @@
 
 3D physics sandbox built with Three.js + Cannon-es.
 
-You’re in an office scene where you can grab and throw objects, toggle gravity on/off, and make a mess.
+You’re in an office where you can grab and throw objects, toggle gravity on/off, and make a mess.
+
+URL: https://office-friday-5pm.vercel.app/
 
 ## How to use
 
@@ -38,6 +40,5 @@ Then open the local Vite URL shown in terminal.
 ## Deployment
 
 Deployed on Vercel as a static Vite app.
-URL: 
 
 No API keys or private credentials are used in this project.
