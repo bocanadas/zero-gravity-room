@@ -2,17 +2,20 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as CANNON from "cannon-es";
-import deskModelUrl from "./models/office_table_desk.glb?url";
+import deskModelUrl from "./models/desk.glb?url";
 import chairModelUrl from "./models/office_chair.glb?url";
 import monitorModelUrl from "./models/monitor.glb?url";
 import mugModelUrl from "./models/mug.glb?url";
 import keyboardModelUrl from "./models/keyboard.glb?url";
 import pcModelUrl from "./models/old_pc_tower.glb?url";
-import mouseModelUrl from "./models/mouse.glb?url";
+import mouseModelUrl from "./models/simple_computer_mouse.glb?url";
 import carpetTextureUrl from "./textures/dusty_carpet.jpg?url";
 import wallpaperTextureUrl from "./textures/wallpaper.png?url";
-import ceilingAUrl from "./textures/ceiling.jpg?url";
-import ceilingBUrl from "./textures/realceiling.jpg?url";
+import ceilingTextureUrl from "./textures/ceiling.jpg?url";
+import pictureFrameModelUrl from "./models/cat.glb?url";
+import buzzAudioUrl from "./audio/buzz.mp3?url";
+import thudAudioAUrl from "./audio/falls-down-noise.mp3?url";
+import thudAudioBUrl from "./audio/thump-carpet.mp3?url";
 
 // Create a scene as the container for everything we render.
 const scene = new THREE.Scene();
@@ -49,6 +52,48 @@ physicsWorld.defaultContactMaterial.restitution = 0.05;
 const roomSize = 12;
 const roomHeight = 8;
 const roomHalfSize = roomSize / 2;
+let isAudioUnlocked = false;
+const lastImpactAtByBodyId = new Map();
+
+// Browser audio must start after a user gesture. Keep it subtle.
+const ambientBuzz = new Audio(buzzAudioUrl);
+ambientBuzz.loop = true;
+ambientBuzz.volume = 0.18;
+const thudAudioUrls = [thudAudioAUrl, thudAudioBUrl];
+
+function unlockAudio() {
+    if (isAudioUnlocked) return;
+    isAudioUnlocked = true;
+    ambientBuzz.play().catch(() => {});
+}
+
+window.addEventListener("pointerdown", unlockAudio, { once: true });
+window.addEventListener("keydown", unlockAudio, { once: true });
+
+function playRandomThud() {
+    if (!isAudioUnlocked) return;
+    const url = thudAudioUrls[Math.floor(Math.random() * thudAudioUrls.length)];
+    const thud = new Audio(url);
+    thud.volume = 0.42;
+    thud.play().catch(() => {});
+}
+
+function maybePlayImpactThud(body, event) {
+    if (!isAudioUnlocked) return;
+    const now = performance.now();
+    const lastImpactAt = lastImpactAtByBodyId.get(body.id) ?? 0;
+    if (now - lastImpactAt < 140) return;
+
+    const contact = event.contact;
+    const impactSpeed = contact && typeof contact.getImpactVelocityAlongNormal === "function"
+        ? Math.abs(contact.getImpactVelocityAlongNormal())
+        : body.velocity.length();
+
+    if (impactSpeed < 1.6) return;
+    lastImpactAtByBodyId.set(body.id, now);
+    playRandomThud();
+}
+
 const textureLoader = new THREE.TextureLoader();
 const floorTexture = textureLoader.load(carpetTextureUrl);
 floorTexture.wrapS = THREE.RepeatWrapping;
@@ -60,11 +105,44 @@ wallTexture.wrapS = THREE.RepeatWrapping;
 wallTexture.wrapT = THREE.RepeatWrapping;
 wallTexture.repeat.set(6, 2.5);
 
-// Warm office/backrooms-style lighting.
-scene.add(new THREE.AmbientLight(0xfff0b3, 0.75));
-const sun = new THREE.DirectionalLight(0xffe6a8, 0.8);
-sun.position.set(5, 8, 3);
-scene.add(sun);
+// Backrooms-like overhead fluorescent lighting: soft ambient + ceiling panel grid.
+scene.add(new THREE.AmbientLight(0xf2e8b8, 0.4));
+scene.add(new THREE.HemisphereLight(0xfff7d9, 0x5a5137, 0.35));
+
+const panelRows = 4;
+const panelCols = 4;
+const panelSpacingX = 2.6;
+const panelSpacingZ = 2.4;
+const panelStartX = -((panelCols - 1) * panelSpacingX) / 2;
+const panelStartZ = -((panelRows - 1) * panelSpacingZ) / 2;
+
+for (let row = 0; row < panelRows; row += 1) {
+    for (let col = 0; col < panelCols; col += 1) {
+        const x = panelStartX + col * panelSpacingX;
+        const z = panelStartZ + row * panelSpacingZ;
+
+        // Visible light panel on the ceiling.
+        const panel = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.15, 1.15),
+            new THREE.MeshStandardMaterial({
+                color: 0xfffdf0,
+                emissive: 0xfff6cf,
+                emissiveIntensity: 1.0,
+                metalness: 0.0,
+                roughness: 0.2,
+                side: THREE.DoubleSide,
+            })
+        );
+        panel.position.set(x, roomHeight - 0.02, z);
+        panel.rotation.x = Math.PI / 2;
+        scene.add(panel);
+
+        // Matching point light to create the room illumination feel.
+        const panelLight = new THREE.PointLight(0xfff0c2, 0.62, 9, 1.9);
+        panelLight.position.set(x, roomHeight - 0.35, z);
+        scene.add(panelLight);
+    }
+}
 
 // Floor plane rotated flat so the cube appears to rest on it.
 const floor = new THREE.Mesh(
@@ -88,8 +166,8 @@ const wallMaterial = new THREE.MeshStandardMaterial({
     metalness: 0.02,
     side: THREE.BackSide,
 });
-const activeCeiling = "A"; // change to "B" to test the other one
-const ceilingTexture = textureLoader.load(activeCeiling === "A" ? ceilingAUrl : ceilingBUrl);
+
+const ceilingTexture = textureLoader.load(ceilingTextureUrl);
 ceilingTexture.wrapS = THREE.RepeatWrapping;
 ceilingTexture.wrapT = THREE.RepeatWrapping;
 ceilingTexture.repeat.set(3, 3);
@@ -187,37 +265,44 @@ const officeItems = [
     },
     {
         modelUrl: monitorModelUrl,
-        positionOffset: new THREE.Vector3(0.0, 2.75, 0.72),
+        positionOffset: new THREE.Vector3(0.0, 2.75, 0.3),
         scale: 0.02,
         rotationY: Math.PI,
         mass: 1.8,
     },
     {
         modelUrl: mugModelUrl,
-        positionOffset: new THREE.Vector3(1.2, 2.6, 1.05),
-        scale: 1.05,
+        positionOffset: new THREE.Vector3(1.3, 2.6, 0.4),
+        scale: 1.5,
         rotationY: 0,
         mass: 1,
     },
     {
         modelUrl: keyboardModelUrl,
-        positionOffset: new THREE.Vector3(0.0, 2.55, 1.45),
-        scale: 0.58,
-        rotationY: Math.PI,
+        positionOffset: new THREE.Vector3(0.0, 2.5, 0.6),
+        scale: 2,
+        rotationY: 0,
         mass: 1.1,
     },
     {
         modelUrl: pcModelUrl,
-        positionOffset: new THREE.Vector3(-1.2, 0.25, 0.2),
-        scale: 0.95,
-        rotationY: Math.PI / 2,
-        mass: 3.8,
+        positionOffset: new THREE.Vector3(-1.2, 2, 0.2),
+        scale: 10,
+        rotationY: 0,
+        mass: 2,
     },
     {
         modelUrl: mouseModelUrl,
-        positionOffset: new THREE.Vector3(0.95, 2.58, 1.4),
-        scale: 0.1,
-        rotationY: Math.PI,
+        positionOffset: new THREE.Vector3(0.95, 2.5, 0.6),
+        scale: 3,
+        rotationY: 0,
+        mass: 0.7,
+    },
+    {
+        modelUrl: pictureFrameModelUrl,
+        positionOffset: new THREE.Vector3(1.5, 2.5, -0.2),
+        scale: 0.3,
+        rotationY: 0,
         mass: 0.7,
     },
 ];
@@ -271,6 +356,12 @@ function loadModelWithBoxPhysics(itemConfig) {
                 modelPhysicsBody.allowSleep = true;
                 modelPhysicsBody.sleepSpeedLimit = 0.15;
                 modelPhysicsBody.sleepTimeLimit = 0.6;
+                // Continuous collision helps fast-moving bodies avoid clipping/tunneling.
+                modelPhysicsBody.ccdSpeedThreshold = 0.2;
+                modelPhysicsBody.ccdIterations = 15;
+                modelPhysicsBody.addEventListener("collide", (event) => {
+                    maybePlayImpactThud(modelPhysicsBody, event);
+                });
             }
             physicsWorld.addBody(modelPhysicsBody);
 
@@ -336,6 +427,20 @@ function createDragBounds(halfX, halfY, halfZ) {
 function clampToRange(value, minValue, maxValue) {
     if (minValue > maxValue) return (minValue + maxValue) * 0.5;
     return THREE.MathUtils.clamp(value, minValue, maxValue);
+}
+
+function wakeNearbyMovableBodies(referenceBody, wakeRadius = 4.5) {
+    const wakeRadiusSq = wakeRadius * wakeRadius;
+    for (const body of movablePhysicsBodies) {
+        if (body === referenceBody) continue;
+        const dx = body.position.x - referenceBody.position.x;
+        const dy = body.position.y - referenceBody.position.y;
+        const dz = body.position.z - referenceBody.position.z;
+        const distanceSq = dx * dx + dy * dy + dz * dz;
+        if (distanceSq <= wakeRadiusSq) {
+            body.wakeUp();
+        }
+    }
 }
 
 function updatePointerScreen(event) {
@@ -453,6 +558,7 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     activeDragItem.body.velocity.set(0, 0, 0);
     activeDragItem.body.angularVelocity.set(0, 0, 0);
     activeDragItem.body.wakeUp();
+    wakeNearbyMovableBodies(activeDragItem.body);
 
     camera.getWorldDirection(cameraForward);
     dragPlane.setFromNormalAndCoplanarPoint(cameraForward, hit.point);
@@ -479,6 +585,7 @@ window.addEventListener("pointerup", () => {
         activeDragItem.body.velocity.set(0, 0, 0);
         activeDragItem.body.angularVelocity.set(0, 0, 0);
     }
+    wakeNearbyMovableBodies(activeDragItem.body);
     activeDragItem = null;
     activeDraggedRoot = null;
     updateHoveredObject();
@@ -498,6 +605,10 @@ window.addEventListener("keydown", (event) => {
     isGravityOn = !isGravityOn;
     physicsWorld.gravity.set(0, isGravityOn ? -9.8 : 0, 0);
     updateGravityHud();
+    // Wake all movable bodies so gravity changes apply immediately.
+    for (const body of movablePhysicsBodies) {
+        body.wakeUp();
+    }
 
     // On zero-g, add a small random impulse so objects gently drift.
     if (!isGravityOn) {
@@ -533,6 +644,7 @@ renderer.setAnimationLoop(() => {
             activeDragItem.body.position.set(clampedX, clampedY, clampedZ);
             activeDragItem.body.velocity.set(0, 0, 0);
             activeDragItem.body.angularVelocity.set(0, 0, 0);
+            wakeNearbyMovableBodies(activeDragItem.body);
             recordDragPoint(new THREE.Vector3(clampedX, clampedY, clampedZ));
         }
     }

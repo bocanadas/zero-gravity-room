@@ -59,3 +59,9 @@ Add comments explaining what each part does. Keep it simple. no physics yet, jus
 7. "can you point me to the lines that handle the room being visible from outside and look in the room from the direction im viewing the room from."
 
 8. "i added the .glb file to the models folder. Show me how to load one using GLTFLoader and give it a physics body. show me the basics i've never done this"
+
+9. "let's add in the soft ambient hum how would we go about doing this also the SFX for grab/throw impacts. i just want a thud nothing much but do you want me to go find these mp3? i added three mp3 in @audio  and i added one for the buzz and two for falls or thuds that any item can have when they fall just choose one of the two at random for any given fall."
+
+10. "is there anything else we should add? i feel like it's done in terms of functionality. i want to add a start screen like a start sequence i feel like it should be something like Office: Friday 5 PM or something like that because you just get to move things around and then like a description that this is a physics engine use with WebGL. maybe i should add like a small little story. im just throwing ideas what do you think we should do? "
+
+11. "i also noticed that when i move the desk first the items just stay floating so they need to be woken up since the beginning also i notice when i move the big table first the items clip through i dont know how hard it would be to fix that."
