@@ -4,7 +4,9 @@
 
 You’re in an office where you can grab and throw objects, toggle gravity on/off, and make a mess.
 
-URL: https://office-friday-5pm.vercel.app/
+Project URL: https://office-friday-5pm.vercel.app/
+Three.js: https://threejs.org/
+Cannon-es: https://pmndrs.github.io/cannon-es/docs/index.html
 
 ## How to use
 
