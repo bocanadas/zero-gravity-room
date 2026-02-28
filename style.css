@@ -40,12 +40,6 @@ canvas {
   font-size: 0.88rem;
 }
 
-.hud-hint {
-  margin-top: 8px;
-  color: #9ca3af;
-  font-size: 0.78rem;
-}
-
 .status-light {
   width: 10px;
   height: 10px;
@@ -62,6 +56,128 @@ canvas {
 .status-light-off {
   background: #ef4444;
   box-shadow: 0 0 8px #ef4444, 0 0 16px rgba(239, 68, 68, 0.55);
+}
+
+.instructions-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10;
+  border: 1px solid rgba(255, 248, 184, 0.26);
+  border-radius: 12px;
+  background: rgba(75, 70, 44, 0.82);
+  color: #fff7cf;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.instructions-button:hover {
+  background: rgba(108, 99, 63, 0.92);
+  border-color: rgba(255, 244, 168, 0.58);
+  box-shadow: 0 0 0 2px rgba(255, 244, 168, 0.2), 0 8px 20px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+}
+
+.instructions-button:active {
+  transform: translateY(0);
+}
+
+.instructions-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 20px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.instructions-card {
+  position: relative;
+  border: 1px solid rgba(255, 243, 174, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(46, 44, 29, 0.96), rgba(31, 31, 24, 0.96));
+  color: #f2f0df;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  padding: 18px 18px 16px;
+  padding-right: 52px; 
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.instructions-card h2 {
+  margin: 0 34px 8px 0;
+  font-size: 1.16rem;
+  color: #fff6c8;
+  letter-spacing: 0.02em;
+}
+
+.instructions-copy {
+  margin: 0;
+  color: #d7d4bf;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.instructions-vibe {
+  margin-bottom: 12px;
+}
+
+.instructions-section-title {
+  margin-top: 10px;
+  margin-bottom: 6px;
+  color: #fff2aa;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.instructions-control {
+  margin-bottom: 5px;
+  color: #ece8cf;
+  font-size: 0.89rem;
+  line-height: 1.35;
+}
+
+.objective-title {
+  margin-top: 12px;
+}
+
+.instructions-objective {
+  margin-top: 2px;
+  color: #fff5c2;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.instructions-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.instructions-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
 @keyframes statusPulse {

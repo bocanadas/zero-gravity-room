@@ -65,3 +65,10 @@ Add comments explaining what each part does. Keep it simple. no physics yet, jus
 10. "is there anything else we should add? i feel like it's done in terms of functionality. i want to add a start screen like a start sequence i feel like it should be something like Office: Friday 5 PM or something like that because you just get to move things around and then like a description that this is a physics engine use with WebGL. maybe i should add like a small little story. im just throwing ideas what do you think we should do? "
 
 11. "i also noticed that when i move the desk first the items just stay floating so they need to be woken up since the beginning also i notice when i move the big table first the items clip through i dont know how hard it would be to fix that."
+
+12. "can we add a functionality that if you press R the scene restarts like again. should we add instructions to the UI? and we could add there space toggles gravity, R to reset, and objetive "Make a mess.""
+
+13. "can you do a better job of spacing making sure that it's more clear what the buttons do something like
+
+R - Reset Scene
+Space - Toggle Gravity"

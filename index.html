@@ -12,7 +12,19 @@
         <span id="gravityIndicator" class="status-light status-light-on"></span>
         <span id="gravityText">Gravity: ON</span>
       </div>
-      <div class="hud-hint">Press Space to toggle gravity</div>
+    </div>
+    <button id="instructionsButton" class="instructions-button" type="button">Instructions</button>
+    <div id="instructionsModal" class="instructions-modal hidden" role="dialog" aria-modal="true" aria-labelledby="instructionsTitle">
+      <div class="instructions-card">
+        <button id="instructionsClose" class="instructions-close" type="button" aria-label="Close instructions">×</button>
+        <h3 class="instructions-copy instructions-vibe">You made it through the week. Time to redecorate aggressively.</h3>
+        <div class="instructions-section-title">Controls</div>
+        <div class="instructions-control">R - Reset Scene</div>
+        <div class="instructions-control">Space - Toggle Gravity</div>
+        <div class="instructions-control">Drag - Grab / Throw Objects</div>
+        <div class="instructions-section-title objective-title">Objective</div>
+        <div class="instructions-objective">Make a mess.</div>
+      </div>
     </div>
     <!-- main.js mounts the Three.js canvas here -->
     <script type="module" src="/main.js"></script>

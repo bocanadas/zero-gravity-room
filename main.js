@@ -54,6 +54,7 @@ const roomHeight = 8;
 const roomHalfSize = roomSize / 2;
 let isAudioUnlocked = false;
 const lastImpactAtByBodyId = new Map();
+let suppressImpactSfxUntil = 0;
 
 // Browser audio must start after a user gesture. Keep it subtle.
 const ambientBuzz = new Audio(buzzAudioUrl);
@@ -63,23 +64,31 @@ const thudAudioUrls = [thudAudioAUrl, thudAudioBUrl];
 
 function unlockAudio() {
     if (isAudioUnlocked) return;
-    isAudioUnlocked = true;
-    ambientBuzz.play().catch(() => {});
+    ambientBuzz.play()
+        .then(() => {
+            isAudioUnlocked = true;
+        })
+        .catch(() => {});
 }
 
-window.addEventListener("pointerdown", unlockAudio, { once: true });
-window.addEventListener("keydown", unlockAudio, { once: true });
+// Try immediately on load, then retry on common user/focus events.
+window.addEventListener("load", unlockAudio);
+window.addEventListener("pointerdown", unlockAudio);
+window.addEventListener("keydown", unlockAudio);
+window.addEventListener("focus", unlockAudio);
 
 function playRandomThud() {
     if (!isAudioUnlocked) return;
     const url = thudAudioUrls[Math.floor(Math.random() * thudAudioUrls.length)];
     const thud = new Audio(url);
-    thud.volume = 0.42;
+    thud.volume = 0.2;
     thud.play().catch(() => {});
 }
 
 function maybePlayImpactThud(body, event) {
     if (!isAudioUnlocked) return;
+    if (!isGravityOn) return;
+    if (performance.now() < suppressImpactSfxUntil) return;
     const now = performance.now();
     const lastImpactAt = lastImpactAtByBodyId.get(body.id) ?? 0;
     if (now - lastImpactAt < 140) return;
@@ -412,6 +421,25 @@ const maxRecentDragPoints = 6;
 
 const gravityText = document.getElementById("gravityText");
 const gravityIndicator = document.getElementById("gravityIndicator");
+const instructionsButton = document.getElementById("instructionsButton");
+const instructionsModal = document.getElementById("instructionsModal");
+const instructionsClose = document.getElementById("instructionsClose");
+
+function openInstructionsModal() {
+    if (!instructionsModal) return;
+    instructionsModal.classList.remove("hidden");
+}
+
+function closeInstructionsModal() {
+    if (!instructionsModal) return;
+    instructionsModal.classList.add("hidden");
+}
+
+instructionsButton?.addEventListener("click", openInstructionsModal);
+instructionsClose?.addEventListener("click", closeInstructionsModal);
+instructionsModal?.addEventListener("click", (event) => {
+    if (event.target === instructionsModal) closeInstructionsModal();
+});
 
 function createDragBounds(halfX, halfY, halfZ) {
     return {
@@ -598,13 +626,20 @@ window.addEventListener("blur", clearHoverState);
 // Toggle gravity with Space: normal fall <-> zero gravity drift.
 let isGravityOn = true;
 updateGravityHud();
-window.addEventListener("keydown", (event) => {
+window.addEventListener("keydown", (event) => {turn;
+    if (event.code === "KeyR" && !event.repeat) {
+        event.preventDefault();
+        window.location.reload();
+        return;
+    }
     if (event.code !== "Space" || event.repeat) return;
     event.preventDefault();
 
     isGravityOn = !isGravityOn;
     physicsWorld.gravity.set(0, isGravityOn ? -9.8 : 0, 0);
     updateGravityHud();
+    // Briefly suppress impact SFX when toggling gravity to avoid spammy sounds.
+    suppressImpactSfxUntil = performance.now() + 250;
     // Wake all movable bodies so gravity changes apply immediately.
     for (const body of movablePhysicsBodies) {
         body.wakeUp();
