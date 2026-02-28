@@ -54,12 +54,13 @@ const roomHeight = 8;
 const roomHalfSize = roomSize / 2;
 let isAudioUnlocked = false;
 const lastImpactAtByBodyId = new Map();
-let suppressImpactSfxUntil = 0;
+const impactSfxStartupDelayMs = 3000;
+let suppressImpactSfxUntil = performance.now() + impactSfxStartupDelayMs;
 
 // Browser audio must start after a user gesture. Keep it subtle.
 const ambientBuzz = new Audio(buzzAudioUrl);
 ambientBuzz.loop = true;
-ambientBuzz.volume = 0.18;
+ambientBuzz.volume = 0.20;
 const thudAudioUrls = [thudAudioAUrl, thudAudioBUrl];
 
 function unlockAudio() {
@@ -70,12 +71,6 @@ function unlockAudio() {
         })
         .catch(() => {});
 }
-
-// Try immediately on load, then retry on common user/focus events.
-window.addEventListener("load", unlockAudio);
-window.addEventListener("pointerdown", unlockAudio);
-window.addEventListener("keydown", unlockAudio);
-window.addEventListener("focus", unlockAudio);
 
 function playRandomThud() {
     if (!isAudioUnlocked) return;
@@ -424,6 +419,19 @@ const gravityIndicator = document.getElementById("gravityIndicator");
 const instructionsButton = document.getElementById("instructionsButton");
 const instructionsModal = document.getElementById("instructionsModal");
 const instructionsClose = document.getElementById("instructionsClose");
+const introOverlay = document.getElementById("introOverlay");
+const introStartButton = document.getElementById("introStartButton");
+let hasStarted = false;
+
+controls.enabled = false;
+
+function startExperience() {
+    if (hasStarted) return;
+    hasStarted = true;
+    controls.enabled = true;
+    unlockAudio();
+    introOverlay?.classList.add("hidden");
+}
 
 function openInstructionsModal() {
     if (!instructionsModal) return;
@@ -440,6 +448,7 @@ instructionsClose?.addEventListener("click", closeInstructionsModal);
 instructionsModal?.addEventListener("click", (event) => {
     if (event.target === instructionsModal) closeInstructionsModal();
 });
+introStartButton?.addEventListener("click", startExperience);
 
 function createDragBounds(halfX, halfY, halfZ) {
     return {
@@ -569,6 +578,7 @@ function updateGravityHud() {
 }
 
 renderer.domElement.addEventListener("pointerdown", (event) => {
+    if (!hasStarted) return;
     updatePointerScreen(event);
     raycaster.setFromCamera(pointerScreen, camera);
     const hit = raycaster.intersectObjects(draggableTargets, true)[0];
@@ -626,7 +636,9 @@ window.addEventListener("blur", clearHoverState);
 // Toggle gravity with Space: normal fall <-> zero gravity drift.
 let isGravityOn = true;
 updateGravityHud();
-window.addEventListener("keydown", (event) => {turn;
+window.addEventListener("keydown", (event) => {
+    if (!hasStarted) return;
+
     if (event.code === "KeyR" && !event.repeat) {
         event.preventDefault();
         window.location.reload();
