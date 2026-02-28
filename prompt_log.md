@@ -2,7 +2,7 @@
 
 ## AI Tools Used
 - Claude (ideation and planning)
-- Cursor with Claude/GPT (code generation and debugging)
+- Cursor (code generation and debugging)
 
 **Planning phase:**
 
@@ -28,7 +28,7 @@ Brainstormed project ideas for a creative web app. I wanted something visually i
 - Added .cursorrules, .gitignore updates, prompt_log.md
 - Learned about Node.js, npm, package.json, node_modules, Vite, cannon-es
 
-**Prompts used:**
+**Key Prompts Used:**
 
 1. "I'm building a zero gravity room. a 3D interactive web experience where users can toggle gravity on/off and grab/throw objects around a room. Here's my current setup:
 
@@ -72,3 +72,13 @@ Add comments explaining what each part does. Keep it simple. no physics yet, jus
 
 R - Reset Scene
 Space - Toggle Gravity"
+
+14. "i want to deploy this to Vercel is there anything import i should take into account before deplyoing this?"
+
+15. "can we update the name of this project to be reflective of what is because it's no longer Zero Gravity Room"
+
+16. "can we add a functionality that if you press R the scene restarts"
+
+17. "i want it to look like an actual folder with a page memo"
+
+18. "can we remove enter to start and just make a button to start to click"
